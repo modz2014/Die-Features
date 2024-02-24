@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+     <RootNamespace>WixSharp</RootNamespace>
+    <TargetFramework>net48</TargetFramework>
+  </PropertyGroup>
+  
+  <ItemGroup>
+    <None Remove="*.msi" />
+    <None Remove="*.exe" />
+    <None Remove="*.wxs" />
+    <None Remove="*.wixpdb" />
+    <None Remove="*.wixobj" />
+    <None Remove="App.config" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="WixSharp" Version="1.25.1" />
+    <PackageReference Include="WixSharp.bin" Version="1.25.1" />
+    <PackageReference Include="WixSharp.wix.bin" Version="3.14.0.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="System.Windows.Forms" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="wix\" />
+  </ItemGroup>
+
+</Project>
