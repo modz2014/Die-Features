@@ -2,7 +2,7 @@
 
 The Plugin Manager is a component of the application responsible for browsing and loading plugins dynamically.
 
-## Features
+Features
 
 - Browse for plugin files on the file system.
 - Load selected plugin files dynamically.
