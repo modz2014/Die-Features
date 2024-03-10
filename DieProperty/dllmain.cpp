@@ -118,9 +118,16 @@ HRESULT DllGetClassObject(REFCLSID rclsid, REFIID riid, LPVOID* ppv) {
 
     // Query the requested interface for the class factory object
     HRESULT hResult = pClassFactory->QueryInterface(riid, ppv);
-    pClassFactory->Release(); // Release the reference to the class factory
+
+    // Only release the object if QueryInterface failed
+    if (FAILED(hResult)) {
+        LogMessage(L"DllGetClassObject: QueryInterface failed. Releasing CClassFactory object."); // Log message indicating QueryInterface failure
+        pClassFactory->Release(); // Release the reference to the class factory
+    }
+
     return hResult; // Return the result of the query
 }
+
 
 /**
  * @brief Registers the COM object as a shell extension.

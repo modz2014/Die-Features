@@ -1,16 +1,19 @@
 
-#if _MSC_VER > 1000
-#pragma once
-#endif // _MSC_VER > 1000
+
+#include "Prop.h"
 
 extern HINSTANCE g_hInst;
 extern UINT       g_DllRefCount;
+extern CShellExt* g_pShellExt;
+
 
 class CClassFactory : public IClassFactory
 {
 protected:
 	DWORD m_ObjRefCount;
+	
 public:
+	
 	CClassFactory();
 	virtual ~CClassFactory();
 

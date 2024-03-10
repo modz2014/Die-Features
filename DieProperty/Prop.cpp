@@ -13,29 +13,17 @@
 #include "ClassFactory.h"
 #include "dllmain.h"
 #include <regex>
-
+#include <numeric>
 
 INT_PTR CALLBACK MyPropPageDlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam);
+
+
 CShellExt::CShellExt()
 {
-   
+    m_ObjRefCount = 1;
 }
 CShellExt::~CShellExt() {}
 
-
-std::wstring GuidToString(const GUID& guid)
-{
-    std::wostringstream oss;
-    oss << std::hex << std::uppercase;
-    oss << std::setw(8) << std::setfill(L'0') << guid.Data1 << L"-";
-    oss << std::setw(4) << std::setfill(L'0') << guid.Data2 << L"-";
-    oss << std::setw(4) << std::setfill(L'0') << guid.Data3 << L"-";
-    oss << std::setw(2) << std::setfill(L'0') << static_cast<short>(guid.Data4[0])
-        << std::setw(2) << std::setfill(L'0') << static_cast<short>(guid.Data4[1]) << L"-";
-    for (int i = 2; i < 8; ++i)
-        oss << std::setw(2) << std::setfill(L'0') << static_cast<short>(guid.Data4[i]);
-    return oss.str();
-}
 
 /**
  * @brief Releases a COM object.
@@ -48,6 +36,8 @@ std::wstring GuidToString(const GUID& guid)
 STDMETHODIMP_(DWORD) CShellExt::Release(void) {
     if (--m_ObjRefCount == 0) {
         LogMessage(L"Release: Deleting the object."); // Log message indicating deletion
+        LogMessage(L"Deleting CShellExt object. File path: " + std::wstring(m_szFile));
+
         delete this; // Delete the object
         return 0; // Return 0 to indicate object deletion
     }
@@ -152,10 +142,17 @@ STDMETHODIMP CShellExt::Initialize(LPCITEMIDLIST pidlFolder, LPDATAOBJECT pDataO
     }
 
     // In this simple sample, take the first file. In reality, you'd probably want to store them all for later use.
-    if (0 == DragQueryFile(hDrop, 0, m_szFile, MAX_PATH))
+    UINT uRet = DragQueryFile(hDrop, 0, m_szFile, MAX_PATH);
+    if (0 == uRet)
+    {
+        LogMessage(L"Error: DragQueryFile failed."); // Log an error message
         hr = E_INVALIDARG;
+    }
     else
+    {
+        LogMessage(L"DragQueryFile succeeded. File path: " + std::wstring(m_szFile)); // Log the file path
         m_ObjRefCount = 1;
+    }
 
     GlobalUnlock(stg.hGlobal); // Unlock the global memory handle
     ReleaseStgMedium(&stg); // Release the storage medium
@@ -163,6 +160,7 @@ STDMETHODIMP CShellExt::Initialize(LPCITEMIDLIST pidlFolder, LPDATAOBJECT pDataO
     LogMessage(L"Initialize method completed."); // Log a message indicating completion
     return hr; // Return the result of the operation
 }
+
 
 /**
  * @brief Adds a property page to the property sheet.
@@ -175,12 +173,14 @@ STDMETHODIMP CShellExt::Initialize(LPCITEMIDLIST pidlFolder, LPDATAOBJECT pDataO
  * @param lParam Additional parameter passed to the function when adding the page.
  * @return HRESULT Returns S_OK if the page is successfully added, otherwise returns an error code.
  */
+
 STDMETHODIMP CShellExt::AddPages(LPFNSVADDPROPSHEETPAGE pfnAddPage, LPARAM lParam) {
+    LogMessage(L"AddPages called. Object instance: " + std::to_wstring((uintptr_t)this));
     LogMessage(L"AddPages called. Adding property page."); // Log a message indicating method call
+    LogMessage(L"Current value of m_szFile: " + std::wstring(m_szFile));
 
     PROPSHEETPAGE psp; // Property sheet page structure
-    HPROPSHEETPAGE hPage; // Handle to the property sheet page
-
+    HPROPSHEETPAGE hPage; // Handle to the property sheet page 
     // Initialize the property sheet page structure.
     ZeroMemory(&psp, sizeof(psp)); // Clear the memory for the structure
     LogMessage(L"Property sheet page structure initialized."); // Log a message
@@ -191,7 +191,9 @@ STDMETHODIMP CShellExt::AddPages(LPFNSVADDPROPSHEETPAGE pfnAddPage, LPARAM lPara
     psp.pszIcon = NULL; // Set the icon for the page
     psp.pszTitle = L"DIE"; // Set the title for the page
     psp.pfnDlgProc = MyPropPageDlgProc; // Set the dialog procedure for the page
-    psp.lParam = 0; // Set the user-defined parameter for the page
+    psp.lParam = reinterpret_cast<LPARAM>(this);
+    AddRef(); // Increment the reference count
+
     psp.pfnCallback = NULL; // Set the callback function for the page
     psp.pcRefParent = (UINT*)&m_ObjRefCount; // Set a reference count for the parent object
 
@@ -209,7 +211,7 @@ STDMETHODIMP CShellExt::AddPages(LPFNSVADDPROPSHEETPAGE pfnAddPage, LPARAM lPara
         LogMessage(L"Error: Failed to add page to property sheet."); // Log an error message
         return E_FAIL; // Return an error code
     }
-
+    LogMessage(L"m_szFile after AddPages: " + std::wstring(m_szFile));
     LogMessage(L"AddPages method completed."); // Log a message indicating completion
     return S_OK; // Return success
 }
@@ -242,15 +244,42 @@ STDMETHODIMP CShellExt::ReplacePage(UINT uPageID, LPFNSVADDPROPSHEETPAGE  lpfnRe
  * @return INT_PTR Returns TRUE if the message was handled, otherwise FALSE.
  */
 INT_PTR CALLBACK MyPropPageDlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam) {
+   
     switch (message) {
     case WM_INITDIALOG:
-        // Initialize dialog controls, load data, etc.
+    {
+     
+        if (g_pShellExt == nullptr) {
+            g_pShellExt = reinterpret_cast<CShellExt*>(lParam);
+           
+        }
+        
+        LogMessage(L"WM_INITDIALOG received. Object instance: " + std::to_wstring((uintptr_t)g_pShellExt));
+        LogMessage(L"m_szFile in WM_INITDIALOG: " + std::wstring(g_pShellExt->m_szFile));
+       
         LogMessage(L"WM_INITDIALOG received."); // Log a message indicating initialization
         SetWindowText(hDlg, reinterpret_cast<LPCTSTR>(lParam)); // Set window title to the file path
-        return TRUE; // Indicate that the message was handled
+
+        std::wstring filePath = g_pShellExt->m_szFile;
+        LogMessage(L"File path: " + filePath); // Log the file path
+
+        TCHAR szDllPath[MAX_PATH];
+        GetModuleFileName((HINSTANCE)&__ImageBase, szDllPath, MAX_PATH); 
+        std::wstring wsDllPath(szDllPath); // Convert to std::wstring for easier manipulation      
+        size_t pos = wsDllPath.find_last_of(L"\\"); // Find the last backslash (the start of the filename)   
+        std::wstring databasePath = wsDllPath.substr(0, pos + 1) + L"db"; // Construct the database path by replacing the filename with "db"
+        LogMessage(L"Database Path: " + databasePath);
+        
+        std::wstring customInfo = GetFileInformation(filePath, databasePath); // Call your custom function to retrieve information
+
+        // Set text of IDC_FILEINFO textbox with the retrieved information
+        HWND hFileInfoTextbox = GetDlgItem(hDlg, IDC_FILEINFO); // Get handle to IDC_FILEINFO textbox
+        SetWindowText(hFileInfoTextbox, customInfo.c_str()); // Set text of the textbox
+
+        return TRUE;
+    }
 
     case WM_COMMAND:
-        // Handle control notifications, button clicks, etc.
         LogMessage(L"WM_COMMAND received."); // Log a message indicating command reception
         switch (LOWORD(wParam)) {
         case IDOK:
@@ -262,6 +291,7 @@ INT_PTR CALLBACK MyPropPageDlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARA
         break;
 
     case WM_DESTROY:
+        g_pShellExt->Release(); // Decrement the reference count
         LogMessage(L"WM_DESTROY received."); // Log a message indicating destruction
         break;
     }
@@ -269,3 +299,29 @@ INT_PTR CALLBACK MyPropPageDlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARA
     return FALSE; // Indicate that the message was not handled
 }
 
+std::wstring GetFileInformation(const std::wstring& filePath, const std::wstring& pwszDatabase)
+{
+    try {
+        const int nBufferSize = 10000;
+        std::wstring sBuffer(nBufferSize, L' ');  // Allocate buffer
+
+        // Use DIE_VB_ScanFile to get the file information
+        int nResult = DIE_VB_ScanFile(filePath.c_str(), 0, pwszDatabase.c_str(), &sBuffer[0], nBufferSize - 1);
+
+        std::wstring result;
+        if (nResult > 0) {
+            // Trim the buffer to the actual length of the result
+            sBuffer.resize(nResult);
+            result = sBuffer;
+        }
+        else {
+            result = L"Scan failed or no result.";
+        }
+
+        return result;
+    }
+    catch (...) {
+        // Handle the exception here if needed
+        return L"Exception occurred while retrieving file information";
+    }
+}

@@ -2,9 +2,11 @@
 #include <windows.h>
 #include <shlobj.h>
 
+#include "dllmain.h"
 #include "ClassFactory.h"
 #include "Prop.h"
 
+CShellExt* g_pShellExt = NULL;
 
 /**
  * @brief Constructs a CClassFactory object.
@@ -78,8 +80,15 @@ STDMETHODIMP_(DWORD) CClassFactory::AddRef()
  */
 STDMETHODIMP_(DWORD) CClassFactory::Release()
 {
-    if (--m_ObjRefCount == 0)
+    --m_ObjRefCount;
+
+    // Log the current reference count
+   // std::wstring message = L"Release: Reference count from CClassFactory is now " + std::to_wstring(m_ObjRefCount);
+   // LogMessage(message);
+
+    if (m_ObjRefCount == 0)
     {
+        LogMessage(L"Release: Deleting the object."); // Log message indicating deletion
         delete this; // Delete object if reference count reaches 0
         return 0;
     }
@@ -99,6 +108,7 @@ STDMETHODIMP_(DWORD) CClassFactory::Release()
  */
 STDMETHODIMP CClassFactory::CreateInstance(LPUNKNOWN pUnknown, REFIID riid, LPVOID* ppObject)
 {
+    
     *ppObject = NULL; // Initialize output parameter
     if (pUnknown != NULL)
         return CLASS_E_NOAGGREGATION; // Aggregation not supported
@@ -108,8 +118,13 @@ STDMETHODIMP CClassFactory::CreateInstance(LPUNKNOWN pUnknown, REFIID riid, LPVO
     if (NULL == pShellExt)
         return E_OUTOFMEMORY; // Failed to allocate memory
 
-    // Query interface for the requested interface
-    HRESULT hResult = pShellExt->QueryInterface(riid, ppObject);
-    pShellExt->Release(); // Release the object after querying the interface
+    g_pShellExt = pShellExt;
+    
+    HRESULT hResult = pShellExt->QueryInterface(riid, ppObject); // Query interface for the requested interface
+
+	if (FAILED(hResult))
+        pShellExt->Release();
+
+
     return hResult; // Return result of querying interface
 }
