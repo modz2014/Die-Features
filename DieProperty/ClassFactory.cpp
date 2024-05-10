@@ -122,8 +122,11 @@ STDMETHODIMP CClassFactory::CreateInstance(LPUNKNOWN pUnknown, REFIID riid, LPVO
     
     HRESULT hResult = pShellExt->QueryInterface(riid, ppObject); // Query interface for the requested interface
 
-	if (FAILED(hResult))
+	 if (FAILED(hResult)) {
         pShellExt->Release();
+        delete pShellExt; // Delete the object to avoid memory leak
+        return hResult;
+    }
 
 
     return hResult; // Return result of querying interface
