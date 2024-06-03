@@ -31,6 +31,7 @@ UINT        g_DllRefCount;
  * @param message The message to be logged.
  */
 void LogMessage(const std::wstring& message) {
+    #ifdef _DEBUG
     wchar_t desktopPath[MAX_PATH]; // Buffer to store the desktop path
     // Attempt to retrieve the desktop directory path
     if (SUCCEEDED(SHGetFolderPathW(NULL, CSIDL_DESKTOPDIRECTORY, NULL, 0, desktopPath))) {
@@ -47,12 +48,13 @@ void LogMessage(const std::wstring& message) {
     else {
         std::cerr << "Failed to get desktop directory." << std::endl; // Print error message to standard error stream
     }
+    #endif
 }
 
 /**
  * @brief Entry point for DLL initialization and cleanup.
  *
- * This function is called by the system when the DLL is loaded or unloaded.
+ * The system calls this function when the DLL is loaded or unloaded.
  * It performs initialization tasks when the DLL is attached to a process and cleanup tasks when detached.
  * The function logs attachment and detachment events for diagnostic purposes.
  *
@@ -173,7 +175,7 @@ HRESULT WINAPI DllUnregisterServer() {
  * Logging messages are generated to provide diagnostic information during the registration process.
  *
  * @param hModule Handle to the DLL module containing the COM object.
- * @return HRESULT Returns S_OK if registration succeeds, otherwise an error code indicating failure.
+ * @return HRESULT Returns S_OK if registration succeeds, otherwise an error code indicates failure.
  */
 HRESULT RegisterShellExtension(HMODULE hModule) {
     HRESULT hr = S_OK; // Initialize result to success
