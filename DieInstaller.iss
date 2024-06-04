@@ -42,24 +42,17 @@ Source: "die\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs
 
 
 [Icons]
-Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: contextmenu
+Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
 Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
 
 [Run]
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
+Filename: "{sys}\regsvr32.exe"; Parameters: "/s ""{app}\DieShellExtension.dll"""
 
-[Registry]
-Root: HKCR; Subkey: "*\shell\Detect It Easy"; Flags: uninsdeletekey; Check: ShouldAddContextMenu
-Root: HKCR; Subkey: "*\shell\Detect It Easy\command"; ValueType: string; \
-    ValueName: ""; ValueData: """{app}\die.exe"" ""%1"""; Flags: uninsdeletekey; Check: ShouldAddContextMenu
-Root: HKCR; Subkey: "*\shell\Detect It Easy"; ValueType: string; \
-    ValueName: "Icon"; ValueData: "{app}\die.exe,0"; Flags: uninsdeletekey; Check: ShouldAddContextMenu
+[UninstallRun]
+Filename: "{sys}\regsvr32.exe"; Parameters: "/u /s ""{app}\DieShellExtension.dll"""
 
 [Code]
-function ShouldAddContextMenu(): Boolean;
-begin
-  Result := WizardForm.TasksList.Checked[1]; // Adjust index if necessary
-end;
 
 procedure InitializeWizard;
 var
@@ -81,10 +74,10 @@ begin
     'of binary files. It helps reverse engineers, security researchers, and software developers ' + #13#10 +
     'in understanding and examining executable files.' + #13#10#13#10+
     'Key Features:' + #13#10 +
-    '• Fast and accurate identification of file types' + #13#10 +
-    '• Support for various architectures and file formats' + #13#10 +
-    '• Intuitive user interface for easy navigation and usage' + #13#10 +
-    '• Extensible through plugins for additional functionality';
+    'â€¢ Fast and accurate identification of file types' + #13#10 +
+    'â€¢ Support for various architectures and file formats' + #13#10 +
+    'â€¢ Intuitive user interface for easy navigation and usage' + #13#10 +
+    'â€¢ Extensible through plugins for additional functionality';
 
   // Adjust font size and style for better readability
   WelcomeLabel.Font.Size := 10;
